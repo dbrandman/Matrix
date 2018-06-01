@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <math.h>
 
-// static int Factorial(int);
 
 //------------------------------ CreateMatrix ------------------------------
 /* Create a matrix.  */
@@ -12,7 +11,7 @@ int CreateMatrix(Matrix *M, int rows, int columns, float *values)
 {
 	//Let's make sure that the dimensions make sense!
 	if (rows <=0 || columns <= 0)
-		return 1;
+		return -1;
 
 	M->rows    				= rows;
 	M->columns 				= columns;
@@ -37,8 +36,13 @@ int MultiplyMatrix(Matrix *C, Matrix *A, Matrix *B)
 		(C->columns != B->columns))
 		return -1;
 
+	// Clear the values of C
 	memset(C->values, 0, sizeof(float) * C->numel);
 
+	// This is not the most efficient way to do matrix multiplication. A nicer way
+	// would be to do it with minimizing cache misses. But you probably wouldn't want
+	// to use this library if you're looking for high performance matrix multiplication anyway.
+	
 	for (int i = 0; i < A->rows; i++)
         for (int j = 0; j < B->columns; j++)
             for (int k = 0; k < B->rows; k++)
@@ -82,8 +86,7 @@ int Subsample(Matrix *C, Matrix *A, int *ind, int n)
 
 void PrintMatrix(Matrix *A)
 {
-	for (int i = 0; i < A->rows; i++)
-	{
+	for (int i = 0; i < A->rows; i++) {
 		for (int j = 0; j < A->columns; j++)
 			printf("%10.4f   ", A->values[Sub2Ind(A,i,j)]);
 		printf("\n");
@@ -103,11 +106,9 @@ void PrintMatrixDimensions(Matrix *A)
 
 
 
-
 int ApplyFunctionSingle(Matrix *A, float (*f)(float))
 //------------------------------ PairwiseOperation ------------------------------
-/* Perform operations on each element of a matrix! 
-   This function always succeeds... Right? */
+/* Perform operations on each element of a matrix!  */
 {
 	for (int i = 0; i < A->numel; i++)
 		A->values[i] = f(A->values[i]);
@@ -133,11 +134,6 @@ int ApplyFunctionFloat(Matrix *A, Matrix *B, float(*f)(float, float))
 
 
 //------------------------------ ResizeMatrix ------------------------------
-/* Resizes the matrix to different dimensions. 
-	0: Everything OK
-	1: columns and rows don't match the new dimensions
-*/
-
 
 int ResizeMatrix(Matrix *A, int rows, int columns)
 {
@@ -170,14 +166,6 @@ float GetDistanceSquared(float x1, float y1, float x2, float y2)
 
 
 
-// static int Factorial (int n)
-// {
-// 	int fact = 1;
-//   	for (int c = 1; c <= n; c++)
-//     	fact = fact * c;
-//     return fact;
-// }
-
 int Numel(Matrix *A, Matrix *B)
 {
 	return A->rows * B->columns;
@@ -198,156 +186,3 @@ float multiply(float a, float b)
 {
 	return a * b;
 }
-
-/*
-void ClearMatrix(Matrix *M)
-{
-	if (M->hasAllocatedMemory > 0)
-		free(M->values);
-	M->rows    = 0;
-	M->columns = 0;
-	M->numel   = 0;
-	M->hasAllocatedMemory = 0;
-}
-
-void floatElementOperation(Matrix *C, float (*f)(float, float), float val, Matrix *A)
-//------------------------------ PairwiseOperation ------------------------------
-Perform operations on each element of a matrix! 
-{
-
-	C->rows    = A->rows;
-	C->columns = A->columns;
-	C->numel   = A->numel;
-	C->values  = malloc(sizeof(float) * (C->numel));
-
-	for (int i = 0; i < A->numel; i++)
-		C->values[i] = f(A->values[i], val);
-}
-
-
-//------------------------------ PairwiseOperation ------------------------------
- Perform pairwise operations on matrices! 
-
-int MatrixArithmetic(Matrix *C, MatrixOperation op, Matrix *A, Matrix *B)
-{
-	// Ensure that the dimensions match!
-	if ((A->columns != B->columns) || 
-		(A->rows    != B->rows)    ||
-		(C->rows    != A->rows)    ||
-		(C->columns != B->columns))
-		return 1;
-
-	switch(op)
-	{
-		case ADD : 	
-			for (int i = 0; i < A->numel; i++)
-				C->values[i] = A->values[i] + B->values[i];
-			break;
-
-		case SUBTRACT : 	
-			for (int i = 0; i < A->numel; i++)
-				C->values[i] = A->values[i] - B->values[i];
-			break;
-
-		case MULTIPLY : 	
-			for (int i = 0; i < A->numel; i++)
-				C->values[i] = A->values[i] * B->values[i];
-			break;
-
-		case DIVIDE : 	
-			for (int i = 0; i < A->numel; i++)
-				C->values[i] = A->values[i] / B->values[i];
-			break;
-
-		default:
-			return 2;
-			break;
-	}
-
-	return 0;
-
-}
-
-
-//------------------------------ PairwiseDistance ------------------------------
- Get the pairwise distance between elements in a matrix! 
-
-void PairwiseDistance(Matrix *C, Matrix *A)
-{
-
-	 int n = A->rows;
-	 int k = 2;
-	 int nCombinations = Factorial(n) / (Factorial(n-k) * Factorial(k));
-
-	 int numel = n * n;
-
-	 float values[nCombinations];
-	 
-	 int indCounter = 0;
-	 float val = 0;
-
-	 // This code produces n Choose 2 combinations of pairwise distances
-	 // into a pre-allocated array of size nCombinations
-
-	 for(int i = 0; i < n; i++)
-	 {
-	 	for(int j = i+1; j < n; j++)
-	 	{
-	 		for(int k = 0; k < A->columns; k++)
-	 		{
-	 			val = A->values[Sub2Ind(A,i,k)] - A->values[Sub2Ind(A,j,k)];
-	 			val *= val;
-	 			values[indCounter] += val;
-	 		}
-	 		values[indCounter] = sqrt(values[indCounter]);
-	 		indCounter++;
-	 	}
-	 }
-
-	 // This code converts n choose 2 combinations to 
-	 // a square matrix of entries
-	 // We're not going to traverse every value, so we're going to use 
-	 // calloc() instead of malloc()
-	 float *squareMatrixValues = calloc(sizeof(float) * numel, sizeof(float));
-
-	 indCounter = 0;
-	 for (int i = 0; i < n; i++)
-	 	for (int j = i+1; j < n; j++)
-	 	{
-	 		squareMatrixValues[Sub2Ind(A,i,j)] = values[indCounter];
-	 		squareMatrixValues[Sub2Ind(A,j,i)] = values[indCounter];
-	 		indCounter++;
-	 	}
-	
-	// Was this created inside PairwiseDistance or MatrixMultiply?
-	// If so, memory was dynamically created and needs to be freed
-	if(C->hasAllocatedMemory == 1)
-		free(C->values);
-
-	//Finally, create our matrix!
-	C->rows    			  = n;
-	C->columns 			  = n;
-	C->numel   			  = numel;	
-	C->values  			  = squareMatrixValues;
-	C->hasAllocatedMemory = 1;
-
-
-	// Create our matrix!
-	// CreateMatrix(C, squareMatrixValues, numel, n, n);
-	
-
-
-	 // C->numel   = n * n;
-	 // C->rows    = n;
-	 // C->columns = n;
-	 // C->values  = malloc(sizeof(float) * C->numel);
-
-	 // for (int i = 0; i < nCombinations; i++)
-	 // 	C->values[i] = values[i];
-
-
-}
-
-*/
-
-
